@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="css/bootstrap-theme.min.css">
+    <!--<link rel="stylesheet" type="text/css" href="css/stock.css">-->
+    <script src="js/d3.min.js"></script>
+    <script src="https://d3plus.org/js/d3.js"></script>
+    <script src="https://d3plus.org/js/d3plus.js"></script>
+    <link href = "https://code.jquery.com/ui/1.10.4/themes/ui-lightness/jquery-ui.css"
+         rel = "stylesheet">
+    <script src = "https://code.jquery.com/jquery-1.10.2.js"></script>
+    <script src = "https://code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
+    <style>	
+.heatmap .content{
+	border: 1px solid black;
+	height: 480px;
+	margin-top: 10px;
+}
+
+/*Show line chart*/
+
+.show .show_content{
+	border: 1px solid gray;
+	height: 624px;
+	width: 335px;
+	background: white;
+	position: fixed;
+	margin-top: 5px;
+	margin-left: -20px;
+	border-radius: 10px;
+}
+
+.show .show_content .name_nganh{
+	text-align: center;
+	color: #003399;
+	font-size: 40px;
+	margin-top: 20px;
+	font-weight: bold;
+}
+
+.show .show_content hr{
+	margin-top: 10px;
+}
+
+.show .show_content .name_ckhoan{
+	float:left;
+	color: #003399;
+	font-size: 20px;
+	font-weight: bold;
+	margin-left: 50px;
+}
+
+.show .show_content .show_ratio{
+	margin-right: 30px;
+	float:right;
+	color: #003399;
+	font-size: 20px;
+	font-weight: bold;
+}
+
+.show .show_content .show_line_chart{
+	height: 300px;
+	width: 100%;
+}
+
+.show .show_content .note{
+	margin-top: 50px;
+	text-align: center;
+	font-weight: bold;
+}
+
+.head{
+	background-color: #363636;
+	padding: 0px;
+}
+
+.body-content{
+	background-color: #1C1C1C;
+}
+
+    </style>
+</head>
+<body onload="loadData()">
+	<div class="container-fluid body-content">
+		<div class="row">
+			<div class="col-md-9 heatmap">
+				<div class="container-fluid head">
+				    <h2 style="color: white; text-align: center">STOCK RECOMMENDATIONS</h2><hr style="margin-top: 10px;">
+				    <select style="height: 25px; margin-left: 50px; border-radius: 5px;" onchange="ChangeYear()" id="year">
+						<option value="2012">2012</option>
+						<option value="2013">2013</option>
+						<option value="2014">2014</option>
+					</select>
+					<label style="margin-left: 50px; color: white;">LeastPrice</label>
+					<input type="text" placeholder="120" style="width: 120px; margin-left: 10px; border-radius: 5px;" id="price" onkeyup="Search()">
+					<label style="margin-left: 30px; color: white;">Industry</label>
+					<input type="text" placeholder="Cap" style="width: 140px; margin-left: 10px; border-radius: 5px;" id="industry" onkeyup="Search()" onautocomplete="Search()">
+					<label style="margin-left: 30px; color: white;">Stock</label>
+					<input type="text" placeholder="Xom" style="width: 140px; margin-left: 10px; border-radius: 5px;" id="stock" onkeyup="Search()">
+					<button style="margin-left: 30px; border-radius: 5px;" onclick="Search()">Search</button>
+					<div>
+						<button style="margin-top: 12px; width: 488.5px; background-color: #1C1C1C; border-bottom: hidden; border-left: hidden; color: white; border-top-right-radius: 5px;" onclick="ChangeToLong()" id="buttonLong"><b>Long</b></button>
+				    	<button style="margin-top: 12px; width: 488.5px; background-color: #828282;  border-top-left-radius: 5px;" onclick="ChangeToShort()" id="buttonShort"><b>Short</b></button>
+					</div>
+				</div>
+				<div class="content" id="content">
+				</div>
+			</div>
+			<div class="col-md-3 show">
+				<div class="show_content">
+					<div class="name_nganh" id="TenNganh"></div>
+					<hr>
+					<div class="name_ckhoan" id="TenCoPhieu"></div>
+					<div class="show_ratio" id="showRatio"></div>
+					<hr style="margin-top: 70px;">
+					<div class="show_line_chart" id="graph"></div>
+					<div class="note">Biểu đồ tỉ lệ (bán/mua) trung bình</div>
+				</div>
+			</div>
+		</div>
+	</div> 	
+	<script type="text/javascript">
+	var dataStock = "Long";
+	var year = "2012";
+	var fileName = "source/data/2012_Long.csv";
+
+	function ChangeYear(){
+		d3.select("#content").select("div").remove();
+		ChangeToLong();
+	}
+
+	function ChangeToShort(){
+		$('#buttonShort').css({
+			"background-color": "#1C1C1C",
+			"border-bottom": "hidden",
+			"border-right": "hidden",
+			"color": "white"
+		});
+		$('#buttonLong').css({
+			"background-color": "#828282",
+			"border-bottom": "hidden",
+			"border-left": "hidden",
+			"color": "black"
+		})
+
+		d3.select("#content").select("div").remove();
+		year = document.getElementById("year").value;
+		fileName = "source/data/" + year + "_Short.csv";
+		loadData();
+	}
+
+	function ChangeToLong(){
+		$('#buttonLong').css({
+			"background-color": "#1C1C1C",
+			"border-bottom": "hidden",
+			"border-left": "hidden",
+			"color": "white"
+		});
+		$('#buttonShort').css({
+			"background-color": "#828282",
+			"border-bottom": "hidden",
+			"border-right": "hidden",
+			"color": "black"
+		})
+		d3.select("#content").select("div").remove();
+		year = document.getElementById("year").value;
+		fileName = "source/data/" + year + "_Long.csv";
+		loadData();
+	}
+
+	function Search(){
+		
+		d3.selectAll("#rectSelected").remove();
+
+		var industryText = document.getElementById("industry").value;
+		var stockText = document.getElementById("stock").value.toUpperCase();
+		var priceText = document.getElementById("price").value;
+
+		if(industryText == "" && stockText== "" && priceText == "")
+			return;
+
+		var priceValue = 0;
+	
+		var arr = [];
+
+		d3.csv(fileName, function(data){
+			if(priceText != "")
+				priceValue = parseFloat(priceText);
+			console.log(priceValue);
+			for(var i = 0; i < data.length; i++)
+				arr[i] = data[i];
+			for(var i = 0; i < arr.length; i++)
+			{
+				if(priceValue > parseFloat(arr[i].GiaBanTB))
+					{
+						arr.splice(i, 1);
+						i--;
+					}
+			}
+			if(industryText != "")
+				for(var i = 0; i < arr.length; i++)
+					if(arr[i].Nganh != industryText)
+					{	
+						arr.splice(i, 1);
+						i--;
+					};
+			if(stockText != "")
+				for(var i = 0; i < arr.length; i++)
+					if(arr[i].TenCoPhieu != stockText)
+					{	
+						arr.splice(i, 1);
+						i--;
+					};
+			for(var i = 0; i < arr.length; i++)
+				{
+					var id = "#d3plus_group_" + arr[i].Nganh + "_" + arr[i].TenCoPhieu + "_rect";
+					var getRect = d3.select(id).select("rect");
+					var varTemp = d3.select(id);
+					if(varTemp[0][0] == null)
+						continue;
+					var translateRect = varTemp[0][0].attributes.transform.nodeValue;
+					console.log(varTemp[0][0]);
+					d3.select("svg").append("rect")
+									.attr("x",getRect[0][0].x.animVal.value)
+									.attr("y",getRect[0][0].y.animVal.value)
+									.attr("width",getRect[0][0].width.animVal.value)
+									.attr("height",getRect[0][0].height.animVal.value)
+									.attr("transform", translateRect)
+									.attr("stroke", "#551A8B")
+									.attr("stroke-width", 3)
+									.attr("fill", "none")
+									.attr("id", "rectSelected")
+				}
+		})
+	}
+
+	//bien luu tru mang nganh va mang co phieu
+	var autoComStock = [];
+	var autoComInd = [];
+
+	function loadData()
+	{
+		d3.csv(fileName, function(lData){
+
+			for(var i = 0; i < lData.length; i++)
+			{
+        		autoComInd[i] = lData[i].Nganh;
+        		autoComStock[i] = lData[i].TenCoPhieu;
+			}
+
+			for(var i = 0; i < autoComInd.length - 1; i++)
+				for(var j = i + 1; j < autoComInd.length; j++)
+					if(autoComInd[i] == autoComInd[j])
+					{
+						autoComInd.splice(j, 1);
+						j--;
+					}
+
+			var indSearch = document.getElementById("industry").value;
+			if(indSearch == "")
+				for(var i = 0; i < lData.length; i++)
+					autoComStock[i] = lData[i].TenCoPhieu;
+			else
+				for(var i = 0; i < lData.length; i++)
+				{
+					if(lData[i].Nganh == indSearch)
+						autoComStock.push(lData[i].TenCoPhieu);
+				}
+
+  		//VE MAC DINH 1 BIEU DO
+  			document.getElementById('TenNganh').innerHTML = lData[0].Nganh;
+			document.getElementById('TenCoPhieu').innerHTML = lData[0].TenCoPhieu;
+			document.getElementById('showRatio').innerHTML = lData[0].TileTB;
+			document.getElementById('graph').innerHTML = "";
+			var dataEveryStock1 = [
+		    {"thang" : "", "value":0, "id": "line"},
+		    {"thang" : "", "value":0, "id": "line"},
+		    {"thang" : "", "value":0, "id": "line"},
+		    {"thang" : "", "value":0, "id": "line"},
+		    {"thang" : "", "value":0, "id": "line"},
+		    {"thang" : "", "value":0, "id": "line"},
+		    {"thang" : "", "value":0, "id": "line"},
+		    {"thang" : "", "value":0, "id": "line"},
+		    {"thang" : "", "value":0, "id": "line"},
+		    {"thang" : "", "value":0, "id": "line"},
+		    {"thang" : "", "value":0, "id": "line"},
+		    {"thang" : "", "value":0, "id": "line"}
+		    ];
+		    dataEveryStock1[0].thang = 1; dataEveryStock1[0].value = parseFloat(lData[0].Thang1);
+		    dataEveryStock1[1].thang = 2; dataEveryStock1[1].value = parseFloat(lData[0].Thang2);
+		    dataEveryStock1[2].thang = 3; dataEveryStock1[2].value = parseFloat(lData[0].Thang3);
+		    dataEveryStock1[3].thang = 4; dataEveryStock1[3].value = parseFloat(lData[0].Thang4);
+		    dataEveryStock1[4].thang = 5; dataEveryStock1[4].value = parseFloat(lData[0].Thang5);
+		    dataEveryStock1[5].thang = 6; dataEveryStock1[5].value = parseFloat(lData[0].Thang6);
+		    dataEveryStock1[6].thang = 7; dataEveryStock1[6].value = parseFloat(lData[0].Thang7);
+		    dataEveryStock1[7].thang = 8; dataEveryStock1[7].value = parseFloat(lData[0].Thang8);
+		    dataEveryStock1[8].thang = 9; dataEveryStock1[8].value = parseFloat(lData[0].Thang9);
+		    dataEveryStock1[9].thang = 10; dataEveryStock1[9].value = parseFloat(lData[0].Thang10);
+		    dataEveryStock1[10].thang = 11; dataEveryStock1[10].value = parseFloat(lData[0].Thang11);
+		    dataEveryStock1[11].thang = 12; dataEveryStock1[11].value = parseFloat(lData[0].Thang12);
+		    var linechart = d3plus.viz()
+		    	.container("#graph")
+		    	.data(dataEveryStock1)
+		    	.type("line")
+		    	.id("id")
+		    	.y("value")
+		    	.x("thang")
+		    	.draw()
+		   //HET VE BIEU DO
+
+  		for(var i = 0; i < lData.length; i++)
+  		{
+  			lData[i].GiaBanTB = parseFloat(lData[i].GiaBanTB);
+  			lData[i].TileTB =  parseFloat((lData[i].TileTB));
+  		}
+  		var htmlButton = "";
+  		var visualization = d3plus.viz()
+		    .container(".content")  // container DIV to hold the visualization
+		    .data({
+		    	"value": lData,
+		    	"opacity": 0.95,
+		    	"stroke": "red"
+		    })  // data to use with the visualization
+		    .tooltip(["Nganh","TenCoPhieu", "GiaBanTB", "TileTB"])
+		    .type("tree_map")   // visualization type
+		    .id(["Nganh","TenCoPhieu"])   // key for which our data is unique on
+		    .depth(1)
+		    .size("GiaBanTB")      // sizing of blocks
+		    .color({
+		    	"range" : ["blue", "red"],
+		    	"value" : "TileTB"
+		    	})
+		    .mouse({
+		    	"over": function(d){
+		    		document.getElementById('TenNganh').innerHTML = d.Nganh;
+		    		document.getElementById('TenCoPhieu').innerHTML = d.TenCoPhieu;
+		    		document.getElementById('showRatio').innerHTML = d.TileTB;
+		    		document.getElementById('graph').innerHTML = "";
+		    		var dataEveryStock = [
+		    		{"thang" : "", "value":0, "id": "line"},
+		    		{"thang" : "", "value":0, "id": "line"},
+		    		{"thang" : "", "value":0, "id": "line"},
+		    		{"thang" : "", "value":0, "id": "line"},
+		    		{"thang" : "", "value":0, "id": "line"},
+		    		{"thang" : "", "value":0, "id": "line"},
+		    		{"thang" : "", "value":0, "id": "line"},
+		    		{"thang" : "", "value":0, "id": "line"},
+		    		{"thang" : "", "value":0, "id": "line"},
+		    		{"thang" : "", "value":0, "id": "line"},
+		    		{"thang" : "", "value":0, "id": "line"},
+		    		{"thang" : "", "value":0, "id": "line"}
+		    		];
+		    		dataEveryStock[0].thang = 1; dataEveryStock[0].value = parseFloat(d.Thang1);
+		    		dataEveryStock[1].thang = 2; dataEveryStock[1].value = parseFloat(d.Thang2);
+		    		dataEveryStock[2].thang = 3; dataEveryStock[2].value = parseFloat(d.Thang3);
+		    		dataEveryStock[3].thang = 4; dataEveryStock[3].value = parseFloat(d.Thang4);
+		    		dataEveryStock[4].thang = 5; dataEveryStock[4].value = parseFloat(d.Thang5);
+		    		dataEveryStock[5].thang = 6; dataEveryStock[5].value = parseFloat(d.Thang6);
+		    		dataEveryStock[6].thang = 7; dataEveryStock[6].value = parseFloat(d.Thang7);
+		    		dataEveryStock[7].thang = 8; dataEveryStock[7].value = parseFloat(d.Thang8);
+		    		dataEveryStock[8].thang = 9; dataEveryStock[8].value = parseFloat(d.Thang9);
+		    		dataEveryStock[9].thang = 10; dataEveryStock[9].value = parseFloat(d.Thang10);
+		    		dataEveryStock[10].thang = 11; dataEveryStock[10].value = parseFloat(d.Thang11);
+		    		dataEveryStock[11].thang = 12; dataEveryStock[11].value = parseFloat(d.Thang12);
+		    		var linechart = d3plus.viz()
+		    			.container("#graph")
+		    			.data(dataEveryStock)
+		    			.type("line")
+		    			.id("id")
+		    			.y("value")
+		    			.x("thang")
+		    			.draw()
+		    	}
+		    })
+		    .draw();        // finally, draw the visualization!;
+		});
+	}
+
+        $("#stock").autocomplete({
+            source: autoComStock,
+            autoFocus:true
+        });
+
+        $("#industry").autocomplete({
+        	source: autoComInd,
+        	autoFocus: true
+        });
+	</script>
+	<script type="text/javascript" src="js/jquery-3.2.1.min.js"></script>
+	
+</body>
+</html>
